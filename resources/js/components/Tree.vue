@@ -1,14 +1,14 @@
 <template>
     <loading-view :loading="loading">
         <div class="flex">
-                <v-jstree 
-                    :data="tree" 
-                    :draggable="true" 
-                    whole-row 
-                    @item-drop="dragEnded" 
+                <v-jstree
+                    :data="tree"
+                    :draggable="true"
+                    whole-row
+                    @item-drop="dragEnded"
                     @item-click="itemClick"
                 ></v-jstree>
-                <TreeDetails v-if="currentNode" :resource="resource" :node="currentNode" @onDelete="deleteNode" @onToggle="toggleNode" />
+                <TreeDetails v-if="currentNode" :resource="resource" :node="currentNode" @onOrder="orderNode" @onDelete="deleteNode" @onToggle="toggleNode" />
         </div>
     </loading-view>
 </template>
@@ -21,7 +21,7 @@ export default {
     data() {
         return {
             loading: true,
-            tree: [],
+            tree: {},
             parents: {},
             lastRetrievedAt: 0,
             currentNode: null
@@ -31,6 +31,7 @@ export default {
         parseResources(rows) {
             const tree = {}
             const map = {}
+            if (!rows) return
             rows.forEach(row => {
                     let leaf = map[row.id.value] = {
                         id: row.id.value,
@@ -68,6 +69,7 @@ export default {
             this.currentNode = node.model
         },
         dragEnded(node, item, draggedItem, e) {
+            console.log(node, item, draggedItem, e)
             this.updateParent(draggedItem, item)
         },
         formData(node, fields, method) {
@@ -85,21 +87,27 @@ export default {
             formData.append('_retrieved_at', this.lastRetrievedAt)
             return formData
         },
-        updateParent(node, newParent) {
-            const oldParent = this.parents[node.parentId]
-            Nova.request().post(`nova-api/${this.resource}/${node.id}?editing=true&editMode=update`, this.formData(node, {
-                parent: newParent.id
-            }, "PUT")).then(res => {
+        updateNode(node, fields = {}) {
+            return Nova.request().post(`/nova-api/${this.resource}/${node.id}?editing=true&editMode=update`, this.formData(node, fields, "PUT")).then(res => {
                 this.mergeResponse(res.data)
+            })
+        },
+        updateParent(node, newParent) {
+            const oldParent = node.parentId && this.parents[node.parentId]
+            return this.updateNode(node, {
+                order: 0,
+                parent: newParent.id
             }).catch(err => {
                 newParent.children.splice(newParent.children.indexOf(node), 1)
-                oldParent.children.push(node)
-                this.order(oldParent.children)
+                if (oldParent) {
+                    oldParent.children.push(node)
+                    this.order(oldParent.children)
+                }
             })
         },
         fetchData() {
             this.loading = true
-            Nova.request().get(`nova-api/${this.resource}`)
+            Nova.request().get(`/nova-api/${this.resource}`)
                 .then(res => {
                     this.currentNode = null
                     this.parseResources(res.data.resources)
@@ -126,7 +134,7 @@ export default {
             this.lastRetrievedAt = Math.floor(Date.now() / 1000)
         },
         deleteNode() {
-            Nova.request().post(`nova-api/${this.resource}`, this.formData(this.currentNode, {
+            Nova.request().post(`/nova-api/${this.resource}`, this.formData(this.currentNode, {
                 resources: this.currentNode.id,
             }, "DELETE"))
                 .then(res => {
@@ -141,14 +149,27 @@ export default {
             const activeState = node.is_active
             node.is_active = 'loading'
 
-            Nova.request().post(`nova-api/${this.resource}/${node.id}?editing=true&editMode=update`, this.formData(node, {
+            this.updateNode(node, {
                 is_active: !activeState ? 1 : 0
-            }, "PUT")).then(res => {
-                this.mergeResponse(res.data)
             }).catch(err => {
                 console.error(err)
                 node.is_active = activeState
                 alert('Failed toggling resource')
+            })
+        },
+        orderNode(dir) {
+            const node = this.currentNode
+            let order = ((node.order*1) || 0) + dir
+            if (order < 0) order = 0
+            if (node.parentId && this.parents[node.parentId].children) {
+                const cLen = this.parents[node.parentId].children.length
+                if (order > cLen)
+                    order = cLen
+            }
+            this.updateNode(node, {
+                order
+            }).catch(err => {
+                alert('Failed changing order')
             })
         },
         mergeResponse(res) {
@@ -185,6 +206,9 @@ export default {
 </script>
 
 <style lang="scss">
+button:focus {
+    outline: none;
+}
 .tree-default .tree-themeicon-custom {
     border: none;
     border-radius: 100px;
