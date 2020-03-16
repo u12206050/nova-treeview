@@ -124,8 +124,7 @@ export default {
             })
         },
         isActiveIcon(active, parentActive) {
-            // THIS WORKS; DONT TOUCH!
-            return !active ? 'disabled' : parentActive ? 'enabled' : 'parentDisabled'
+            return !active ? 'disabled' : parentActive ? 'enabled' : 'parentDisabled';
         },
         order(nodes) {
             nodes.sort((a,b) => a.order > b.order ? 1 : -1)
@@ -154,7 +153,7 @@ export default {
             }).catch(err => {
                 console.error(err)
                 node.is_active = activeState
-                alert('Failed toggling resource')
+                this.$toasted.show('Failed toggling resource!', { type: 'error' })
             })
         },
         orderNode(dir) {
@@ -169,7 +168,7 @@ export default {
             this.updateNode(node, {
                 order
             }).catch(err => {
-                alert('Failed changing order')
+                this.$toasted.show('Failed changing order', { type: 'error' })
             })
         },
         mergeResponse(res) {
