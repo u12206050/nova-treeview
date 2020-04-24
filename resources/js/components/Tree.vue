@@ -39,7 +39,6 @@ export default {
                         is_active: this.attrValue(row, 'is_active'),
                         icon: this.isActiveIcon(true, true),
                         order: this.attrValue(row, 'order'),
-                        slug: this.attrValue(row, 'slug'),
                         parentText: this.attrValue(row, 'parent'),
                         parentId: this.attrValue(row, 'parent', 'belongsToId'),
                         children: [],
@@ -77,7 +76,6 @@ export default {
             const nodeFields = {
                 order: node.order,
                 title: node.text,
-                slug: node.slug,
                 ...fields
             }
             for (let attr in nodeFields) {
@@ -173,7 +171,7 @@ export default {
         },
         mergeResponse(res) {
             if (res.id && res.resource) {
-                const { id, parent_id, title, slug, order, is_active} = res.resource
+                const { id, parent_id, title, order, is_active} = res.resource
                 const node = this.parents[id]
                 const parent = this.parents[parent_id]
                 node.parentText = parent.text
@@ -181,7 +179,6 @@ export default {
                 node.text = title
                 node.is_active = is_active
                 node.icon = this.isActiveIcon(is_active, parent.icon === 'enabled')
-                node.slug = slug
                 node.order = order
                 this.order(parent.children)
                 this.setIconState(node.children, node.icon === 'enabled')
