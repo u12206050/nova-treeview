@@ -40,6 +40,7 @@ use Day4\TreeView\TreeView;
         return [
             ...
             new TreeView([
+             // ['NAME_IN_SIDEBAR', 'TABLE_NAME']
                 ['Categories', 'categories']
             ])
         ];
