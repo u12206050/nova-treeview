@@ -1,3 +1,5 @@
+‼️ This repository is no longer maintained by the original author. PRs are still welcome, but active support is limited
+
 # Nova Tree View
 
 Display a model in a Tree View with drag and drop functionality.
